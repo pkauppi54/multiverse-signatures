@@ -10,7 +10,7 @@ I got stuck debugging all of this code for a week (or two :D) but managed to get
 Special thanks to the Telegram channel for helping me with bugs and such. This multi-sig wallet template was copied from BuidlGuidl and has been very
 popular among builders! 
 
-![image](https://user-images.githubusercontent.com/2653167/124158108-c14ca380-da56-11eb-967e-69cde37ca8eb.png)
+![image](https://github.com/pkauppi54/multiverse-signatures/blob/master/Capture.PNG?raw=true)
 
 
 # 💫 Quick Start
