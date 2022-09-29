@@ -27,16 +27,16 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   // Getting a previously deployed contract
   const multiSigWallet = await ethers.getContract("MultiverseCreator", deployer);
 
-  // try {
-  //   if (chainId !== localChainId) {
-  //     await run("verify:verify", {
-  //       address: multiSigWallet.address,
-  //       contract: "contracts/MultiSigCreator.sol:MultiSigCreator",
-  //       constructorArguments: [],
-  //     });
-  //   }
-  // } catch (error) {
-  //   console.error(error);
-  // }
+  try {
+    if (chainId !== localChainId) {
+      await run("verify:verify", {
+        address: multiSigWallet.address,
+        contract: "contracts/MultiSigCreator.sol:MultiSigCreator",
+        constructorArguments: [],
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
 };
 module.exports.tags = ["YourContract"];

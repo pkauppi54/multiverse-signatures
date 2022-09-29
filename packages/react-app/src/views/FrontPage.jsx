@@ -1,11 +1,9 @@
-import { Button, Card, DatePicker, Divider, Input, List, Modal, Progress, Slider, Space, Spin, Switch } from "antd";
+import { Button, Divider, List } from "antd";
 import QR from "qrcode.react";
 import React, { useEffect, useState } from "react";
-import { utils, ethers } from "ethers";
-import { SyncOutlined } from "@ant-design/icons";
 import { DisplayOwners, TransactionListItem } from "../components/Multiverse";
 import { Address, AddressFull, AddressInput, Balance, Events, MultiAddressInput, EtherInput } from "../components";
-import DisplayVariable from "../components/Contract/DisplayVariable";
+import { Link } from "react-router-dom";
 
 import { CreateMultiverseModal } from "../components/Multiverse";
 
@@ -37,29 +35,25 @@ export default function FrontPage({
   return (
     <>
       <div style={{ paddingTop: 40, position: "left" }}>
-        <Button
-          type={"primary"}
-          size={"large"}
-          style={{ marginRight: 50 }}
-          onClick={() => {
-            window.location = "/twist";
-          }}
-        >
-          {" "}
-          📜 Propose A Transaction
-        </Button>
-
-        <Button
-          type={"primary"}
-          size={"large"}
-          style={{ marginLeft: 50 }}
-          onClick={() => {
-            window.location = "/arena";
-          }}
-        >
-          {" "}
-          🖋️ Sign/Execute Transactions
-        </Button>
+        <Link to="/twist">
+          <Button type={"primary"} size={"large"} style={{ marginRight: 50 }}>
+            {" "}
+            📜 Propose A Transaction
+          </Button>
+        </Link>
+        <Link to="/arena">
+          <Button
+            type={"primary"}
+            size={"large"}
+            style={{ marginLeft: 50 }}
+            onClick={() => {
+              window.location = "/arena";
+            }}
+          >
+            {" "}
+            🖋️ Sign/Execute Transactions
+          </Button>
+        </Link>
       </div>
       <div style={{ paddingBottom: 100, maxWidth: 850, margin: "auto" }}>
         <div style={{ padding: 30 }}>
