@@ -61,7 +61,7 @@ const { ethers } = require("ethers");
 /// 📡 What chain are your contracts deployed to?
 const initialNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
-//let BACKEND_URL = "http://localhost:5000/";
+//let BACKEND_URL = "http://localhost:49899/";
 let BACKEND_URL = "https://multiverse-signatures-backend.herokuapp.com/";
 
 // 😬 Sorry for all the console logging
@@ -185,7 +185,6 @@ function App(props) {
   useEffect(() => {
     if (address) {
       let multiversesForUser = ownersMultiverseEvents.reduce((filtered, createEvent) => {
-        console.log("CREATEEVENT ARGS: ", createEvent.args);
         if (createEvent.args.owners.includes(address) && !filtered.includes(createEvent.args.multiverseAddress)) {
           filtered.push(createEvent.args.multiverseAddress);
         }
@@ -245,8 +244,6 @@ function App(props) {
     }
   }, [currentMultiverseAddress, readContracts, writeContracts]);
 
-  console.log("Current Multiverse address LINE 262: ", currentMultiverseAddress);
-
   const allOwnerEvents = useEventListener(
     currentMultiverseAddress ? readContracts : null,
     contractNameForEvent,
@@ -278,8 +275,7 @@ function App(props) {
     );
 
     const nonceNum = typeof nonce === "number" ? nonce : nonce?.toNumber();
-    console.log("NONCE NUNNA ", nonceNum); // returns 3
-    console.log("FILT EVENTS LENGTH: ", filteredEvents.length); // returns 1
+
     if (nonceNum === filteredEvents.length) {
       setExecuteTransactionEvents(filteredEvents);
     }

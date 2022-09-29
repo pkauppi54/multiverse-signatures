@@ -13,8 +13,6 @@ export default function TransactionDetailsModal({
   handleCancel,
   visible,
 }) {
-  console.log("TRANSACTOOOOOR: ", txnInfo);
-
   return (
     <Modal
       title="Transaction Details"

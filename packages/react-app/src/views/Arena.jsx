@@ -175,7 +175,6 @@ export default function Arena({
                           finalSigList,
                         ),
                       );
-                      //window.location.reload();
                     }}
                   >
                     Exec

@@ -74,9 +74,6 @@ export default function TwistTheMultiverse({
     setIsWalletConnectTransaction(false);
   }, [isWalletConnectTransaction]);
 
-  // HERE WE NEED TO GET THE EVENT NAME BY ADDING A SELECT SECTION WHERE THE KEYS ARE THE EVENT NAMES
-  // iF THEY ARE SELECTED THEN WE SETEVENT(X)
-
   const createTransaction = async () => {
     try {
       if (newSignaturesRequired < 1) {
@@ -156,7 +153,6 @@ export default function TwistTheMultiverse({
   };
 
   return (
-    // HERE WE DO CONDITIONAL RENDERING USING THE EVENTNAME === "x".
     <div>
       <div style={{ border: "1px solid #cccccc", padding: 16, width: 400, margin: "auto", marginTop: 64 }}>
         <div style={{ margin: 8 }}>

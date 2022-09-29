@@ -20,21 +20,8 @@ export default function DisplayOwners({ mainnetProvider, signaturesRequired, own
     owners.add(recentOwners[i]);
   }
 
-  // ownerEvents.forEach(event => {
-
-  //     for (let i=0; i<event.args.owners.length; i++) {
-  //         owners.add(event.args.owners[i]);
-  //     }
-  //     if (event.args.added) {
-  //         owners.add(event.args.owner);
-  //     } else {
-  //         owners.delete(event.args.owner);
-  //     }
-  // });
   console.log("ownerEvents: ", ownerEvents);
 
-  // ownerEvent === OwnerChanged
-  // emits (address owner, bool added)
   return (
     <div style={{ position: "left" }}>
       <List
