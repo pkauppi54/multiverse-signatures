@@ -185,7 +185,9 @@ export default function TwistTheMultiverse({
                 <AddressInput
                   autoFocus
                   ensProvider={mainnetProvider}
-                  placeholder={methodName == "transferFunds" ? "Recepient address" : "Owner address"}
+                  placeholder={
+                    methodName == "transferFunds" || methodName == "customCallData" ? "To address" : "Owner address"
+                  }
                   value={to}
                   onChange={setTo}
                 />
