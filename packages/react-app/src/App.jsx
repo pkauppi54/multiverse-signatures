@@ -1,4 +1,4 @@
-import { Button, Col, Menu, Row } from "antd";
+import { Button, Col, Menu, Row, Select } from "antd";
 import "antd/dist/antd.css";
 import {
   useBalance,
@@ -6,6 +6,7 @@ import {
   useContractReader,
   useGasPrice,
   useOnBlock,
+  useUserAddress,
   useUserProviderAndSigner,
 } from "eth-hooks";
 import { useExchangeEthPrice } from "eth-hooks/dapps/dex";
@@ -24,13 +25,18 @@ import {
   FaucetHint,
   NetworkSwitch,
 } from "./components";
+import { CreateMultiverseModal, ImportMultiverseModal } from "./components/Multiverse";
 import { NETWORKS, ALCHEMY_KEY } from "./constants";
 import externalContracts from "./contracts/external_contracts";
 // contracts
 import deployedContracts from "./contracts/hardhat_contracts.json";
+// multiverse contract abi here:
 import { Transactor, Web3ModalSetup } from "./helpers";
-import { Home, ExampleUI, Hints, Subgraph } from "./views";
-import { useStaticJsonRPC } from "./hooks";
+import { Home, ExampleUI, Hints, Subgraph, FrontPage, TwistTheMultiverse, Arena } from "./views";
+import { useLocalStorage, useStaticJsonRPC } from "./hooks";
+import { useEventListener } from "eth-hooks/events/useEventListener";
+import create from "@ant-design/icons/lib/components/IconFont";
+import MultiverseSignaturesABI from "./contracts/ABI/MultiverseSignatures.json";
 
 const { ethers } = require("ethers");
 /*
@@ -53,7 +59,10 @@ const { ethers } = require("ethers");
 */
 
 /// 📡 What chain are your contracts deployed to?
-const initialNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, goerli, xdai, mainnet)
+const initialNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+
+let BACKEND_URL = "http://localhost:49899/";
+// let BACKEND_URL = "https://multiverse-signatures-sb.herokuapp.com/";
 
 // 😬 Sorry for all the console logging
 const DEBUG = true;
@@ -73,7 +82,7 @@ const providers = [
 function App(props) {
   // specify all the chains your app is available on. Eg: ['localhost', 'mainnet', ...otherNetworks ]
   // reference './constants.js' for other networks
-  const networkOptions = [initialNetwork.name, "mainnet", "goerli"];
+  const networkOptions = [initialNetwork.name, "mainnet", "rinkeby"];
 
   const [injectedProvider, setInjectedProvider] = useState();
   const [address, setAddress] = useState();
@@ -115,6 +124,9 @@ function App(props) {
   const userProviderAndSigner = useUserProviderAndSigner(injectedProvider, localProvider, USE_BURNER_WALLET);
   const userSigner = userProviderAndSigner.signer;
 
+  // const userProvider = useUserProvider(injectedProvider, localProvider);
+  // setAddress(useUserAddress(userProvider));
+
   useEffect(() => {
     async function getAddress() {
       if (userSigner) {
@@ -151,6 +163,165 @@ function App(props) {
   // If you want to make 🔐 write transactions to your contracts, use the userSigner:
   const writeContracts = useContractLoader(userSigner, contractConfig, localChainId);
 
+  // ---------------NEW CODE--------------------/
+
+  const contractName = "MultiverseSignatures";
+  const contractAddress = readContracts?.MultiverseSignatures?.address;
+  console.log("MultiverseSignatures address: ", contractAddress);
+
+  // owners events are emitted when a multiverse wallet is created and it includes the array of owner wallets, which is important for filtering.
+  const ownersMultiverseEvents = useEventListener(readContracts, "MultiverseCreator", "Owners", localProvider, 1);
+  if (DEBUG) console.log("ownersMultiverseEvents: ", ownersMultiverseEvents);
+
+  const [multiverses, setMultiverses] = useState([]);
+  const [currentMultiverseAddress, setCurrentMultiverseAddress] = useState();
+  console.log("CurrentMultiverseAddress", currentMultiverseAddress);
+
+  const [importedMultiverses] = useLocalStorage("importedMultiverses");
+
+  // Here we define the multiverses that the user has by listening for broadcast events from the smart contract and running all of them
+  // though our filter and picking the ones that hold the user address in _owners array.
+  // .reduce() reduces the number of values in an array to one -> the event of user in owners[]
+  useEffect(() => {
+    if (address) {
+      let multiversesForUser = ownersMultiverseEvents.reduce((filtered, createEvent) => {
+        console.log("CREATEEVENT ARGS: ", createEvent.args);
+        if (createEvent.args.owners.includes(address) && !filtered.includes(createEvent.args.multiverseAddress)) {
+          filtered.push(createEvent.args.multiverseAddress);
+        }
+        return filtered;
+      }, []);
+
+      if (importedMultiverses && importedMultiverses[targetNetwork.name]) {
+        multiversesForUser = [...new Set([...importedMultiverses[targetNetwork.name], ...multiversesForUser])];
+      }
+
+      if (multiversesForUser.length > 0) {
+        const recentMultiSigAddress = multiversesForUser[multiversesForUser.length - 1];
+        if (recentMultiSigAddress != currentMultiverseAddress) setContractNameForEvent(null);
+        setCurrentMultiverseAddress(recentMultiSigAddress);
+        setMultiverses(multiversesForUser);
+      }
+    }
+  }, [ownersMultiverseEvents, address]);
+
+  const [signaturesRequired, setSignaturesRequired] = useState();
+  const [nonce, setNonce] = useState(0);
+
+  // Reading these from the contract:
+  const signaturesRequiredContract = useContractReader(readContracts, contractName, "signaturesRequired");
+  const nonceContract = useContractReader(readContracts, contractName, "nonce");
+
+  useEffect(() => {
+    setSignaturesRequired(signaturesRequiredContract);
+    setNonce(nonceContract);
+  }, [signaturesRequiredContract, nonceContract]);
+
+  const [contractNameForEvent, setContractNameForEvent] = useState();
+
+  useEffect(() => {
+    async function getContractValues() {
+      const latestSignaturesRequired = await readContracts.MultiverseSignatures.signaturesRequired();
+      setSignaturesRequired(latestSignaturesRequired);
+
+      const nonce = await readContracts.MultiverseSignatures.nonce();
+      setNonce(nonce);
+    }
+
+    if (currentMultiverseAddress) {
+      readContracts.MultiverseSignatures = new ethers.Contract(
+        currentMultiverseAddress,
+        MultiverseSignaturesABI,
+        localProvider,
+      );
+      writeContracts.MultiverseSignatures = new ethers.Contract(
+        currentMultiverseAddress,
+        MultiverseSignaturesABI,
+        userSigner,
+      );
+
+      setContractNameForEvent("MultiverseSignatures");
+      getContractValues();
+    }
+  }, [currentMultiverseAddress, readContracts, writeContracts]);
+
+  console.log("Current Multiverse address LINE 262: ", currentMultiverseAddress);
+
+  const allOwnerEvents = useEventListener(
+    currentMultiverseAddress ? readContracts : null,
+    contractNameForEvent,
+    "OwnerChanged",
+    localProvider,
+    1,
+  );
+
+  const allExecuteTransactionEvents = useEventListener(
+    currentMultiverseAddress ? readContracts : null,
+    contractNameForEvent,
+    "ExecuteTransaction",
+    localProvider,
+    1,
+  );
+  if (DEBUG) console.log("allExecuteTransactionEvents length: ", allExecuteTransactionEvents.length);
+
+  const [ownerEvents, setOwnerEvents] = useState();
+  const [executeTransactionEvents, setExecuteTransactionEvents] = useState();
+
+  // this gives us the owner event from this current multiverse so we can iterate through them in <DisplayOwners />
+  useEffect(() => {
+    setOwnerEvents(allOwnerEvents.filter(contractEvent => contractEvent.address === currentMultiverseAddress));
+  }, [allOwnerEvents, currentMultiverseAddress]);
+
+  useEffect(() => {
+    const filteredEvents = allExecuteTransactionEvents.filter(
+      contractEvent => contractEvent.address === currentMultiverseAddress,
+    );
+
+    const nonceNum = typeof nonce === "number" ? nonce : nonce?.toNumber();
+    console.log("NONCE NUNNA ", nonceNum); // returns 3
+    console.log("FILT EVENTS LENGTH: ", filteredEvents.length); // returns 1
+    if (nonceNum === filteredEvents.length) {
+      setExecuteTransactionEvents(filteredEvents);
+    }
+  }, [allExecuteTransactionEvents, currentMultiverseAddress, nonce]);
+
+  const userHasMultiverses = currentMultiverseAddress ? true : false;
+
+  const handleMultiverseChange = value => {
+    setContractNameForEvent(null);
+    setCurrentMultiverseAddress(value);
+  };
+
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+
+  const selectNetworkOptions = [];
+  for (const id in NETWORKS) {
+    selectNetworkOptions.push(
+      <Select.Option key={id} value={NETWORKS[id].name}>
+        <span style={{ color: NETWORKS[id].color }}>{NETWORKS[id].name}</span>
+      </Select.Option>,
+    );
+  }
+
+  const networkSelect = (
+    <Select
+      defaultValue={targetNetwork.name}
+      style={{ testAlign: "left", witdth: 170 }}
+      onChange={value => {
+        if (targetNetwork.chainId != NETWORKS[value].chainId) {
+          window.localStorage.setItem("network", value);
+          setTimeout(() => {
+            window.location.reload();
+          }, 1);
+        }
+      }}
+    >
+      {selectNetworkOptions}
+    </Select>
+  );
+
+  // ---------------NEW CODE ENDS--------------------/
+
   // EXTERNAL CONTRACT EXAMPLE:
   //
   // If you want to bring in the mainnet DAI contract it would look like:
@@ -167,7 +338,7 @@ function App(props) {
   ]);
 
   // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts, "YourContract", "purpose");
+  const isOwner = useContractReader(readContracts, contractName, "isOwner", [address]);
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
@@ -286,59 +457,126 @@ function App(props) {
         logoutOfWeb3Modal={logoutOfWeb3Modal}
         USE_NETWORK_SELECTOR={USE_NETWORK_SELECTOR}
       />
-      <Menu style={{ textAlign: "center", marginTop: 20 }} selectedKeys={[location.pathname]} mode="horizontal">
+
+      <div style={{ position: "relative" }}>
+        <div style={{ position: "absolute", left: 20, display: "flex", flexDirection: "column", alignItems: "start" }}>
+          <div>
+            <CreateMultiverseModal
+              selectedAddress={address}
+              mainnetProvider={mainnetProvider}
+              localProvider={localProvider}
+              price={price}
+              isCreateModalVisible={isCreateModalVisible}
+              setIsCreateModalVisible={setIsCreateModalVisible}
+              writeContracts={writeContracts}
+              contractName={"MultiverseCreator"}
+              selectedChainId={selectedChainId}
+              tx={tx}
+            />
+            <Select
+              value={[currentMultiverseAddress]}
+              style={{ width: 120, marginRight: 5 }}
+              onChange={handleMultiverseChange}
+            >
+              {multiverses.map((address, index) => (
+                <Select.Option key={index} value={address}>
+                  {address}
+                </Select.Option>
+              ))}
+            </Select>
+            {networkSelect}
+          </div>
+          <ImportMultiverseModal
+            mainnetProvider={mainnetProvider}
+            targetNetwork={targetNetwork}
+            networkOptions={selectNetworkOptions}
+            multiverses={multiverses}
+            setMultiverses={setMultiverses}
+            setCurrentMultiverseAddress={setCurrentMultiverseAddress}
+            MultiverseSignaturesABI={MultiverseSignaturesABI}
+            localProvider={localProvider}
+          />
+        </div>
+      </div>
+
+      <Menu
+        disabled={!userHasMultiverses}
+        style={{ textAlign: "center", marginTop: 20 }}
+        selectedKeys={[location.pathname]}
+        mode="horizontal"
+      >
         <Menu.Item key="/">
-          <Link to="/">App Home</Link>
+          <Link to="/">Your Multiverse</Link>
         </Menu.Item>
-        <Menu.Item key="/debug">
-          <Link to="/debug">Debug Contracts</Link>
+        <Menu.Item key="/twist">
+          <Link to="/twist">Twist the Multiverse</Link>
         </Menu.Item>
-        <Menu.Item key="/hints">
-          <Link to="/hints">Hints</Link>
-        </Menu.Item>
-        <Menu.Item key="/exampleui">
-          <Link to="/exampleui">ExampleUI</Link>
-        </Menu.Item>
-        <Menu.Item key="/mainnetdai">
-          <Link to="/mainnetdai">Mainnet DAI</Link>
-        </Menu.Item>
-        <Menu.Item key="/subgraph">
-          <Link to="/subgraph">Subgraph</Link>
+        <Menu.Item key="/arena">
+          <Link to="/arena">Arena</Link>
         </Menu.Item>
       </Menu>
 
       <Switch>
         <Route exact path="/">
           {/* pass in any web3 props to this Home component. For example, yourLocalBalance */}
-          <Home yourLocalBalance={yourLocalBalance} readContracts={readContracts} />
+          {/* <Home yourLocalBalance={yourLocalBalance} readContracts={readContracts} /> */}
+          {!userHasMultiverses ? (
+            <div style={{ padding: 200 }}>
+              <h1>Welcome to the Multiverse Wallet Factory!</h1>
+              <h2>Please create a new wallet below:</h2>
+              <br />
+              <Button
+                size="large"
+                onClick={() => {
+                  setIsCreateModalVisible(true);
+                }}
+              >
+                New Wallet
+              </Button>
+            </div>
+          ) : (
+            <FrontPage
+              localProvider={localProvider}
+              contractName={contractName}
+              currentMultiverseAddress={currentMultiverseAddress}
+              address={address}
+              mainnetProvider={mainnetProvider}
+              price={price}
+              selectedChainId={selectedChainId}
+              writeContracts={writeContracts}
+              readContracts={readContracts}
+              signaturesRequired={signaturesRequired}
+              ownerEvents={ownersMultiverseEvents} // switched from ownerEvents
+              executeTransactionEvents={executeTransactionEvents}
+              blockExplorer={blockExplorer}
+            />
+          )}
         </Route>
-        <Route exact path="/debug">
+        <Route exact path="/twist">
           {/*
                 🎛 this scaffolding is full of commonly used components
                 this <Contract/> component will automatically parse your ABI
                 and give you a form to interact with it locally
             */}
 
-          <Contract
-            name="YourContract"
-            price={price}
-            signer={userSigner}
-            provider={localProvider}
-            address={address}
-            blockExplorer={blockExplorer}
-            contractConfig={contractConfig}
-          />
-        </Route>
-        <Route path="/hints">
-          <Hints
-            address={address}
-            yourLocalBalance={yourLocalBalance}
+          <TwistTheMultiverse
+            contractName={contractName}
+            contractAddress={contractAddress}
+            localProvider={localProvider}
             mainnetProvider={mainnetProvider}
             price={price}
+            readContracts={readContracts}
+            userSigner={userSigner}
+            nonce={nonce}
+            signaturesRequired={signaturesRequired}
+            poolServerUrl={BACKEND_URL}
           />
         </Route>
-        <Route path="/exampleui">
-          <ExampleUI
+        <Route path="/arena">
+          <p>Here you can see the pending transactions and sign/execute them</p>
+          <Arena
+            poolServerUrl={BACKEND_URL}
+            contractName={contractName}
             address={address}
             userSigner={userSigner}
             mainnetProvider={mainnetProvider}
@@ -348,37 +586,9 @@ function App(props) {
             tx={tx}
             writeContracts={writeContracts}
             readContracts={readContracts}
-            purpose={purpose}
-          />
-        </Route>
-        <Route path="/mainnetdai">
-          <Contract
-            name="DAI"
-            customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.DAI}
-            signer={userSigner}
-            provider={mainnetProvider}
-            address={address}
-            blockExplorer="https://etherscan.io/"
-            contractConfig={contractConfig}
-            chainId={1}
-          />
-          {/*
-            <Contract
-              name="UNI"
-              customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.UNI}
-              signer={userSigner}
-              provider={mainnetProvider}
-              address={address}
-              blockExplorer="https://etherscan.io/"
-            />
-            */}
-        </Route>
-        <Route path="/subgraph">
-          <Subgraph
-            subgraphUri={props.subgraphUri}
-            tx={tx}
-            writeContracts={writeContracts}
-            mainnetProvider={mainnetProvider}
+            blockExplorer={blockExplorer}
+            nonce={nonce}
+            signaturesRequired={signaturesRequired}
           />
         </Route>
       </Switch>
