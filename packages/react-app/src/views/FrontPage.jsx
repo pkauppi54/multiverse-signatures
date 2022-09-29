@@ -1,4 +1,4 @@
-import { Button, Card, DatePicker, Divider, Input, List, Modal, Progress, Slider, Spin, Switch } from "antd";
+import { Button, Card, DatePicker, Divider, Input, List, Modal, Progress, Slider, Space, Spin, Switch } from "antd";
 import QR from "qrcode.react";
 import React, { useEffect, useState } from "react";
 import { utils, ethers } from "ethers";
@@ -36,9 +36,33 @@ export default function FrontPage({
 
   return (
     <>
-      <div style={{ padding: 32, maxWidth: 850, margin: "auto" }}>
+      <div style={{ paddingTop: 40, position: "left" }}>
+        <Button
+          type={"primary"}
+          size={"large"}
+          style={{ marginRight: 50 }}
+          onClick={() => {
+            window.location = "/twist";
+          }}
+        >
+          {" "}
+          📜 Propose A Transaction
+        </Button>
+
+        <Button
+          type={"primary"}
+          size={"large"}
+          style={{ marginLeft: 50 }}
+          onClick={() => {
+            window.location = "/arena";
+          }}
+        >
+          {" "}
+          🖋️ Sign/Execute Transactions
+        </Button>
+      </div>
+      <div style={{ paddingBottom: 100, maxWidth: 850, margin: "auto" }}>
         <div style={{ padding: 30 }}>
-          <h2>Your unique Multiverse Wallet!! </h2>
           <div>
             <Balance size={40} address={currentMultiverseAddress} provider={localProvider} price={price} />
           </div>
@@ -50,9 +74,10 @@ export default function FrontPage({
               includeMargin
               renderAs="svg"
               imageSettings={{ excavate: false }}
+              bgColor={"transparent"}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center", padding: 20 }}>
             <Address
               address={currentMultiverseAddress}
               ensProvider={mainnetProvider}
@@ -61,9 +86,10 @@ export default function FrontPage({
             />
           </div>
         </div>
-        <div style={{ padding: 30 }}>
-          <h3>Signatures required: {signaturesInJavascript}</h3>
+        <div style={{ padding: 10 }}>
+          <h2>Signatures required: {signaturesInJavascript}</h2>
         </div>
+
         <div style={{ padding: 32 }}>
           <DisplayOwners
             mainnetProvider={mainnetProvider}
@@ -73,17 +99,8 @@ export default function FrontPage({
           />{" "}
           <br />
         </div>
-        <div style={{ padding: 10 }}>
-          <Button
-            type={"primary"}
-            onClick={() => {
-              window.location = "/twist";
-            }}
-          >
-            {" "}
-            Propose A Transaction
-          </Button>
-        </div>
+
+        <Divider>Transaction logs:</Divider>
         <List
           bordered
           dataSource={sortData(executeTransactionEvents)}

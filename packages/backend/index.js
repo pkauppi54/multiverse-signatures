@@ -1,3 +1,10 @@
+/*
+THIS "BACKEND" FOLDER DOES NOT AFFECT ANYTHING BECAUSE I HAVE DEPLOYED
+EVERYTHING TO HEROKU: https://multiverse-signatures-backend.herokuapp.com/ */
+
+
+
+
 const express = require('express')
 var fs = require("fs"); // Helps us read data from files
 const https = require("https");

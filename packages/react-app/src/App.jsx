@@ -61,8 +61,8 @@ const { ethers } = require("ethers");
 /// 📡 What chain are your contracts deployed to?
 const initialNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
-let BACKEND_URL = "http://localhost:49899/";
-// let BACKEND_URL = "https://multiverse-signatures-sb.herokuapp.com/";
+//let BACKEND_URL = "http://localhost:5000/";
+let BACKEND_URL = "https://multiverse-signatures-backend.herokuapp.com/";
 
 // 😬 Sorry for all the console logging
 const DEBUG = true;
@@ -501,7 +501,13 @@ function App(props) {
 
       <Menu
         disabled={!userHasMultiverses}
-        style={{ textAlign: "center", marginTop: 20 }}
+        style={{
+          textAlign: "center",
+          marginTop: 20,
+          backgroundColor: "aliceblue",
+          borderRadius: 5,
+          borderColor: "grey",
+        }}
         selectedKeys={[location.pathname]}
         mode="horizontal"
       >

@@ -36,7 +36,7 @@ export default function DisplayOwners({ mainnetProvider, signaturesRequired, own
   // ownerEvent === OwnerChanged
   // emits (address owner, bool added)
   return (
-    <div>
+    <div style={{ position: "left" }}>
       <List
         header={<h2>Owners</h2>}
         style={{ padding: 5, maxWidth: 400, margin: "auto" }}
