@@ -46,6 +46,11 @@ yarn deploy
 ```
 > in a forth terminal, start the local backend. (Reminder: You need to change the BACKEND_URL from App.jsx)
 
+```bash
+cd multiverse-signatures
+yarn backend
+``` 
+
 📱 Open http://localhost:3000 to see the app
 
 
